@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Experimento - TCC Tagger{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Novo experimento</h1>
+
+<form method="post" class="card p-3">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      {{ form.document.label_tag }}
+      {{ form.document }}
+    </div>
+    <div class="col-md-6 mb-3">
+      {{ form.llm_model.label_tag }}
+      {{ form.llm_model }}
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      {{ form.pipeline.label_tag }}
+      {{ form.pipeline }}
+    </div>
+    <div class="col-md-6 mb-3">
+      {{ form.prompt.label_tag }}
+      {{ form.prompt }}
+      <div class="form-text">
+        Se vazio, será utilizado o prompt padrão configurado.
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Executar experimento</button>
+  <a href="{% url 'experiments:list' %}" class="btn btn-secondary ms-2">Cancelar</a>
+</form>
+{% endblock %}
+

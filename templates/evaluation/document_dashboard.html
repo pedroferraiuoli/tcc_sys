@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard do Documento {{ document.id }} - TCC Tagger{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Dashboard do documento</h1>
+  <a href="{% url 'documents:detail' document.id %}" class="btn btn-secondary"
+    >Voltar ao documento</a
+  >
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Resumo</div>
+  <div class="card-body">
+    <p><strong>Arquivo:</strong> {{ document.file_name }}</p>
+    <p><strong>Tags humanas:</strong> {{ document.human_tags|default:"(não definido)" }}</p>
+  </div>
+</div>
+
+<h2 class="h5 mt-4 mb-2">Experimentos para este documento</h2>
+
+{% if experiments %}
+<table class="table table-striped table-bordered align-middle">
+  <thead>
+    <tr>
+      <th>ID Exp.</th>
+      <th>Modelo</th>
+      <th>Pipeline</th>
+      <th>Tags geradas</th>
+      <th>Precisão</th>
+      <th>Recall</th>
+      <th>F1</th>
+      <th>Tempo (s)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for exp in experiments %}
+    <tr>
+      <td>{{ exp.id }}</td>
+      <td>{{ exp.llm_model.name }}</td>
+      <td>{{ exp.pipeline.name }}</td>
+      <td>
+        {% if exp.result %}
+        {{ exp.result.generated_tags }}
+        {% else %}
+        -
+        {% endif %}
+      </td>
+      <td>{% if exp.evaluation %}{{ exp.evaluation.precision|floatformat:3 }}{% else %}-{% endif %}</td>
+      <td>{% if exp.evaluation %}{{ exp.evaluation.recall|floatformat:3 }}{% else %}-{% endif %}</td>
+      <td>{% if exp.evaluation %}{{ exp.evaluation.f1_score|floatformat:3 }}{% else %}-{% endif %}</td>
+      <td>
+        {% if exp.result %}
+        {{ exp.result.runtime_seconds|floatformat:2 }}
+        {% else %}-{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Nenhum experimento cadastrado para este documento.</p>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Geral - TCC Tagger{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Dashboard geral de métricas</h1>
+  <a href="{% url 'evaluation:export_csv' %}" class="btn btn-outline-secondary"
+    >Exportar resultados em CSV</a
+  >
+</div>
+
+{% if model_stats or pipeline_stats %}
+<div class="row">
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header">Média de métricas por modelo</div>
+      <div class="card-body">
+        <canvas id="modelChart" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header">Média de métricas por pipeline</div>
+      <div class="card-body">
+        <canvas id="pipelineChart" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="h5 mt-4 mb-2">Tabela – métricas por modelo</h2>
+<table class="table table-sm table-striped">
+  <thead>
+    <tr>
+      <th>Modelo</th>
+      <th>Precisão média</th>
+      <th>F1 médio</th>
+      <th>Tempo médio (s)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in model_stats %}
+    <tr>
+      <td>{{ row.model }}</td>
+      <td>{{ row.precision|floatformat:3 }}</td>
+      <td>{{ row.f1_score|floatformat:3 }}</td>
+      <td>{{ row.runtime|floatformat:2 }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="h5 mt-4 mb-2">Tabela – métricas por pipeline</h2>
+<table class="table table-sm table-striped">
+  <thead>
+    <tr>
+      <th>Pipeline</th>
+      <th>Precisão média</th>
+      <th>F1 médio</th>
+      <th>Tempo médio (s)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in pipeline_stats %}
+    <tr>
+      <td>{{ row.pipeline }}</td>
+      <td>{{ row.precision|floatformat:3 }}</td>
+      <td>{{ row.f1_score|floatformat:3 }}</td>
+      <td>{{ row.runtime|floatformat:2 }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Ainda não há resultados de avaliação para exibir.</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const modelStats = JSON.parse("{{ model_stats_json|escapejs }}");
+  const pipelineStats = JSON.parse("{{ pipeline_stats_json|escapejs }}");
+
+  if (modelStats.length > 0) {
+    const ctxModel = document.getElementById("modelChart").getContext("2d");
+    new Chart(ctxModel, {
+      type: "bar",
+      data: {
+        labels: modelStats.map((r) => r.model),
+        datasets: [
+          {
+            label: "Precisão",
+            data: modelStats.map((r) => r.precision),
+            backgroundColor: "rgba(54, 162, 235, 0.7)",
+          },
+          {
+            label: "F1",
+            data: modelStats.map((r) => r.f1_score),
+            backgroundColor: "rgba(255, 99, 132, 0.7)",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "top" },
+        },
+        scales: {
+          y: { beginAtZero: true, max: 1.0 },
+        },
+      },
+    });
+  }
+
+  if (pipelineStats.length > 0) {
+    const ctxPipeline = document.getElementById("pipelineChart").getContext("2d");
+    new Chart(ctxPipeline, {
+      type: "bar",
+      data: {
+        labels: pipelineStats.map((r) => r.pipeline),
+        datasets: [
+          {
+            label: "Precisão",
+            data: pipelineStats.map((r) => r.precision),
+            backgroundColor: "rgba(75, 192, 192, 0.7)",
+          },
+          {
+            label: "F1",
+            data: pipelineStats.map((r) => r.f1_score),
+            backgroundColor: "rgba(255, 159, 64, 0.7)",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "top" },
+        },
+        scales: {
+          y: { beginAtZero: true, max: 1.0 },
+        },
+      },
+    });
+  }
+</script>
+{% endblock %}
+

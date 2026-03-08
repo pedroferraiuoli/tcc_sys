@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Upload de Documento - TCC Tagger{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Upload de PDF</h1>
+
+<form method="post" enctype="multipart/form-data" class="card p-3">
+  {% csrf_token %}
+  <div class="mb-3">
+    {{ form.pdf_file.label_tag }}
+    {{ form.pdf_file }}
+  </div>
+  <button type="submit" class="btn btn-primary">Enviar e extrair texto</button>
+  <a href="{% url 'documents:list' %}" class="btn btn-secondary ms-2">Cancelar</a>
+</form>
+{% endblock %}
+

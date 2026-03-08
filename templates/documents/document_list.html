@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Documentos - TCC Tagger{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Documentos</h1>
+  <a href="{% url 'documents:upload' %}" class="btn btn-primary">Novo upload de PDF</a>
+</div>
+
+{% if documents %}
+<table class="table table-striped table-bordered align-middle">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Arquivo</th>
+      <th>Tags humanas</th>
+      <th>Páginas</th>
+      <th>Upload</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for doc in documents %}
+    <tr>
+      <td>{{ doc.id }}</td>
+      <td>{{ doc.file_name }}</td>
+      <td>{{ doc.human_tags|default:"(não definido)" }}</td>
+      <td>{{ doc.num_pages }}</td>
+      <td>{{ doc.upload_date|date:"d/m/Y H:i" }}</td>
+      <td>
+        <a href="{% url 'documents:detail' doc.id %}" class="btn btn-sm btn-outline-secondary"
+          >Detalhes</a
+        >
+        <a
+          href="{% url 'evaluation:document_dashboard' doc.id %}"
+          class="btn btn-sm btn-outline-primary"
+          >Dashboard</a
+        >
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  </table>
+{% else %}
+<p>Nenhum documento cadastrado ainda.</p>
+{% endif %}
+{% endblock %}
+

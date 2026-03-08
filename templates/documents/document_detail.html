@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Documento {{ document.id }} - TCC Tagger{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Documento: {{ document.file_name }}</h1>
+  <div>
+    <a
+      href="{% url 'evaluation:document_dashboard' document.id %}"
+      class="btn btn-sm btn-outline-primary"
+      >Ver dashboard</a
+    >
+    <a href="{% url 'documents:list' %}" class="btn btn-sm btn-secondary ms-2"
+      >Voltar</a
+    >
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-4">
+    <div class="card mb-3">
+      <div class="card-header">Metadados</div>
+      <div class="card-body">
+        <p><strong>ID:</strong> {{ document.id }}</p>
+        <p><strong>Arquivo:</strong> {{ document.file_name }}</p>
+        <p><strong>Páginas:</strong> {{ document.num_pages }}</p>
+        <p>
+          <strong>Upload:</strong> {{ document.upload_date|date:"d/m/Y H:i" }}
+        </p>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Tags humanas (ground truth)</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          <div class="mb-3">
+            {{ form.human_tags.label_tag }}
+            {{ form.human_tags }}
+            <div class="form-text">
+              Informe uma lista de palavras‑chave separadas por vírgula.
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Salvar tags</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card mb-3">
+      <div class="card-header">Texto extraído</div>
+      <div class="card-body" style="max-height: 500px; overflow-y: auto">
+        <pre style="white-space: pre-wrap">{{ document.extracted_text }}</pre>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

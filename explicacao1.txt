@@ -1,0 +1,318 @@
+1. O que foi implementado em relação ao seu prompt
+Vou passar ponto a ponto.
+
+1) Gestão de documentos
+Upload de PDFs: implementado (DocumentUploadView + DocumentUploadForm + Document).
+Campos do documento:
+id: implícito (pk).
+nome do arquivo: file_name.
+arquivo PDF: pdf_file.
+texto extraído: extracted_text.
+data de upload: upload_date.
+número de páginas: num_pages.
+Ao enviar PDF:
+Extrair texto automaticamente: implementado em create_document_from_upload usando pdfplumber.
+Armazenar no banco: implementado (modelo Document).
+Permitir visualizar o texto extraído: implementado na tela de detalhe do documento (document_detail.html).
+2) Definição de tags humanas (ground truth)
+Lista de palavras‑chave por documento: implementado no campo human_tags de Document (CSV de keywords).
+Interface para adicionar/editar: implementado (DocumentTagsForm + DocumentDetailView), com textarea simples.
+3) Definição de modelos LLM
+Tabela de modelos: implementado (LLMModel):
+name (nome do modelo)
+provider (choices: ollama, openai, other)
+endpoint
+model_size
+description
+Exemplos (mistral, llama3, qwen): não são pré-cadastrados, mas podem ser criados facilmente via admin.
+4) Definição de pipelines
+Estrutura de pipelines: implementado (PipelineDefinition + PipelineType).
+Pipeline 1 – Extração direta:
+Fluxo PDF → texto extraído → prompt → LLM → tags: implementado em run_direct_pipeline:
+concatena prompt.text + document.extracted_text e chama o LLM via Ollama.
+Pipeline 2 – RAG:
+Fluxo PDF → texto → chunking → embeddings → retrieval → contexto → prompt → LLM → tags: implementado em run_rag_pipeline:
+usa SentenceSplitter (chunking),
+HuggingFaceEmbedding (embeddings),
+VectorStoreIndex (indexação + retrieval top‑k),
+LLM Ollama pela integração oficial do LlamaIndex.
+chunk size entre 500 e 800 tokens: controlado por PipelineDefinition.chunk_size (default 600 — você pode ajustar por pipeline).
+retrieval top‑k 3 ou 5: PipelineDefinition.top_k (default 3).
+LlamaIndex para indexação/recuperação: implementado.
+5) Execução de experimentos
+Entidade "Experimento": implementado (Experiment).
+
+Combina document, llm_model, pipeline, prompt.
+Execução:
+
+Envia prompt ao modelo via run_pipeline (direct ou RAG).
+Gera tags automaticamente (PipelineResult.tags_text).
+Armazena resultado em ExperimentResult.
+Campos do resultado:
+
+documento/modelo/pipeline: estão ligados via Experiment (não duplicados como campos em ExperimentResult, mas relacionados 1‑para‑1).
+tags geradas: ExperimentResult.generated_tags.
+tempo de execução: runtime_seconds.
+número de tokens usados: num_tokens (estimado por contagem de palavras; não é contagem exata de tokens de um tokenizer específico).
+custo computacional estimado (opcional): campo estimated_cost existe, mas ainda não é calculado automaticamente (você pode preencher manualmente ou implementar a função de custo depois).
+Execução em lote: implementado:
+
+Serviço run_batch_experiments (todas combinações doc × modelo × pipeline).
+Tela BatchExperimentView + BatchExperimentForm.
+6) Avaliação automática
+Comparar tags geradas x tags humanas: implementado em evaluate_experiment.
+Métricas (via scikit-learn): implementado:
+precision_score, recall_score, f1_score, accuracy_score.
+Salvar resultados no banco: implementado (EvaluationResult com precision, recall, f1_score, accuracy).
+7) Dashboard de métricas por documento
+View: document_dashboard.
+Template: evaluation/document_dashboard.html.
+Para cada experimento do documento, mostra:
+tags humanas (no cabeçalho com o documento),
+tags geradas (exp.result.generated_tags),
+modelo (exp.llm_model.name),
+pipeline (exp.pipeline.name),
+precision, recall, f1 (exp.evaluation),
+tempo de execução (exp.result.runtime_seconds).
+Interface é uma tabela, conforme solicitado.
+8) Dashboard de métricas gerais
+View: overall_dashboard.
+Agregação com pandas: implementado:
+monta um DataFrame com modelo/pipeline/precision/f1/runtime,
+faz groupby e mean.
+Média por modelo: implementado (model_stats).
+Média por pipeline: implementado (pipeline_stats).
+Gráficos com Chart.js: implementado em overall_dashboard.html:
+gráfico de barras para métricas por modelo,
+gráfico de barras para métricas por pipeline.
+9) Prompt controlado
+Armazenamento em banco: implementado (PromptTemplate com campo is_default).
+Uso como padrão para experimentos (conceito):
+create_experiment e run_batch_experiments usam get_default_prompt() quando prompt não é passado.
+Limitação importante (ponto que falta ajustar):
+Na tela de experimento individual (ExperimentCreateView), hoje o código cria o Experiment diretamente com prompt=form.cleaned_data.get("prompt").
+Se o usuário não escolher um prompt na UI, isso provavelmente vai causar erro (campo não pode ser nulo) e, mais importante, não força automaticamente o uso do prompt padrão.
+Ou seja: conceitualmente o prompt padrão existe e é usado em batch, mas a tela de criação individual ainda não garante que “todos os experimentos” usem o mesmo prompt, a não ser que você sempre selecione o mesmo PromptTemplate manualmente.
+Para ficar 100% aderente ao requisito, seria ideal mudar essa view para usar o helper create_experiment (que já força o default) ou tornar o campo prompt obrigatório e instruir usar sempre o padrão.
+10) Organização do código
+Apps separados: implementado:
+documents, experiments, pipelines, evaluation, llm.
+Cada módulo com models/services/views/templates:
+models.py: em todos os apps.
+services.py: em documents, llm, pipelines, experiments, evaluation.
+views.py: em documents, experiments, evaluation.
+templates/: pastas documents/, experiments/, evaluation/ + base.html.
+serializers: não foram criados, pois não há API/DRF; o requisito dizia “serializers (se usar API)”, então está ok.
+Evitar lógica pesada nas views / centralizar em services: atendido (views chamam funções de service para extração, execução, avaliação).
+11) Requisitos adicionais
+Executar experimentos em lote: implementado (BatchExperimentView + serviço run_batch_experiments).
+Comparar resultados entre pipelines:
+Por documento: dashboard mostra, na mesma tabela, linhas com pipelines diferentes.
+Geral: dashboard mostra médias por pipeline (direto vs RAG).
+⇒ atendido.
+Exportar resultados em CSV: implementado (export_results_csv).
+Registrar logs das execuções:
+logging configurado em settings.py com handlers console e experiments_file (experiments.log).
+Serviços experiments.services, pipelines.services e llm.services usam logging.getLogger(__name__), o que propaga para os loggers experiments, pipelines, llm.
+⇒ atendido (logs em arquivo e console).
+Outras observações
+Banco:
+SQLite configurado por padrão (requisito “SQLite ou PostgreSQL” está atendido).
+PostgreSQL pode ser configurado alterando DATABASES.
+Celery/assíncrono:
+Celery está listado em requirements.txt, mas não há tasks nem broker configurados.
+Isso é opcional pelo seu prompt, então não é um “faltando”, apenas algo que você pode adicionar se quiser rodar experimentos assíncronos.
+Comentário de código:
+Há docstrings explicativas nos services e models mais importantes; não é super verboso, mas suficiente para uso acadêmico.
+Resumo de gaps principais:
+
+Prompt padrão não é garantido na tela de experimento individual (é garantido no batch).
+Custo computacional estimado existe como campo mas não tem cálculo automático.
+Execução síncrona: sem Celery, experimentos (principalmente RAG com PDFs grandes) podem demorar e bloquear a requisição; isso é aceitável, mas diferente de uma solução totalmente assíncrona.
+2. Passo a passo detalhado para rodar e usar no TCC
+Vou assumir que seu projeto está em /home/pedro/tcc_sys.
+
+Passo 1 – Preparar ambiente Python e instalar dependências
+Abrir um terminal na pasta do projeto:
+cd /home/pedro/tcc_sys
+Criar e ativar um ambiente virtual (recomendado):
+python -m venv .venv
+source .venv/bin/activate  # Linux
+Instalar as dependências:
+pip install -r requirements.txt
+Isso instala Django, pdfplumber, LlamaIndex + integrações Ollama e embeddings, scikit‑learn, pandas etc.
+
+Passo 2 – Configurar o banco de dados
+Por padrão está em SQLite, então basta:
+
+python manage.py migrate
+python manage.py createsuperuser
+Se quiser usar PostgreSQL para o TCC:
+
+Criar database e usuário no Postgres.
+Editar tcc_tagger/settings.py e trocar DATABASES["default"] para algo como:
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "tcc_tagger",
+        "USER": "seu_usuario",
+        "PASSWORD": "sua_senha",
+        "HOST": "localhost",
+        "PORT": "5432",
+    }
+}
+Rodar novamente:
+python manage.py migrate
+Passo 3 – Configurar Ollama e modelos LLM locais
+Instalar e rodar Ollama (se ainda não estiver rodando).
+Baixar os modelos que você quer comparar, por exemplo:
+ollama pull mistral
+ollama pull llama3
+ollama pull qwen2
+Certificar que o serviço está ouvindo em http://localhost:11434 (padrão do Ollama).
+Passo 4 – Cadastrar modelos, pipelines e prompt no admin
+Subir o servidor Django:
+python manage.py runserver
+Acessar o admin em http://127.0.0.1:8000/admin/ com o superuser criado.
+
+Cadastrar PromptTemplate (prompt padrão):
+
+Em Prompts (PromptTemplate):
+name: por exemplo, prompt_padrao_keywords.
+text: exatamente o texto científico que você quer fixar, por exemplo:
+“Leia o seguinte texto e gere uma lista de palavras‑chave que representem os principais temas do documento. Retorne apenas uma lista de keywords separadas por vírgula.”
+Marcar is_default = True.
+Salvar.
+Cadastrar modelos LLM (LLMModel) – um para cada modelo que você quer comparar:
+
+name: mistral, llama3, qwen, etc. (deve bater com o nome do modelo no Ollama).
+provider: ollama.
+endpoint: http://localhost:11434.
+model_size: ex: 7B, 8B, etc. (para documentação).
+description: algo como “Mistral 7B via Ollama” etc.
+is_active: marcado.
+Salvar para cada modelo.
+Cadastrar pipelines (PipelineDefinition):
+
+Pipeline baseline:
+name: Baseline direta.
+type: Extração direta (direct).
+description: “Pipeline baseline: texto completo do PDF → LLM”.
+chunk_size: pode deixar default (não é usado aqui).
+top_k: pode deixar default (não é usado aqui).
+Pipeline RAG:
+name: RAG padrão.
+type: RAG.
+description: “RAG com LlamaIndex, bge-small, top-k=3”.
+chunk_size: 600 (dentro de 500–800).
+top_k: 3 (ou 5, se quiser).
+Salvar.
+A partir daqui, o sistema está pronto para receber PDFs e rodar experimentos com esses modelos e pipelines.
+
+Passo 5 – Carregar PDFs e definir ground truth
+Acessar http://127.0.0.1:8000/ (raiz redireciona para /documents/).
+Clicar em “Novo upload de PDF”.
+Escolher um arquivo PDF e enviar.
+O sistema:
+salva o arquivo,
+extrai o texto com pdfplumber,
+conta páginas,
+mostra a tela de detalhe do documento.
+Na tela de detalhe:
+Verificar o texto extraído (lado direito).
+No card “Tags humanas (ground truth)”, escrever tags separadas por vírgula:
+Exemplo: saúde pública, políticas públicas, SUS, financiamento.
+Clicar em “Salvar tags”.
+Repetir para todos os PDFs que você usará no TCC.
+Passo 6 – Executar experimentos
+Você pode fazer experimentos individuais ou em lote.
+
+6.1 Experimentos individuais
+Ir em “Experimentos” na navbar (ou /experiments/).
+Clicar em “Novo experimento”.
+Preencher o formulário:
+Documento: escolha um dos PDFs.
+Modelo LLM: escolha, por exemplo, mistral.
+Pipeline: escolha Baseline direta ou RAG padrão.
+Prompt:
+Para aderir à ideia de prompt controlado, sempre selecione o mesmo PromptTemplate padrão, até que você ajuste a view para forçar automaticamente o default.
+Enviar o formulário.
+O sistema:
+cria o Experiment,
+roda o pipeline correspondente (direto ou RAG),
+salva ExperimentResult,
+calcula métricas e salva EvaluationResult.
+Você volta para a lista de experimentos já vendo:
+status = Concluído,
+métricas (precision, recall, F1),
+tempo de execução e número de tokens estimado.
+6.2 Experimentos em lote (recomendado para TCC)
+Em /experiments/, clicar em “Experimentos em lote”.
+No formulário:
+Documentos: selecione todos os PDFs do seu corpus (multi‑select).
+Modelos LLM: selecione todos os modelos que quer comparar (ex.: mistral, llama3, qwen).
+Pipelines: selecione Baseline direta e RAG padrão.
+Prompt: selecione o seu PromptTemplate padrão, ou deixe vazio para que o serviço use get_default_prompt() (aqui o serviço já força o padrão).
+Enviar o formulário.
+O sistema executa todas as combinações documento × modelo × pipeline.
+Dependendo do número de documentos e do tamanho dos PDFs, isso pode demorar (está síncrono). Para TCC, você pode rodar aos poucos ou depois evoluir para Celery.
+Passo 7 – Analisar resultados e métricas
+7.1 Dashboard por documento
+Em /documents/, clique em “Dashboard” na linha de um documento ou em “Ver dashboard” na tela de detalhe.
+Na tela de dashboard do documento, você verá:
+No topo:
+nome do arquivo,
+tags humanas (ground truth).
+Em tabela:
+para cada experimento daquele documento:
+ID do experimento,
+modelo,
+pipeline,
+tags geradas,
+precision, recall, F1,
+tempo de execução em segundos.
+Isso permite comparar, para um documento específico, como cada modelo + pipeline se comportou.
+7.2 Dashboard geral (comparação agregada)
+Ir em “Dashboard Geral” na navbar (ou /evaluation/overall/).
+Se houver avaliações calculadas, você verá:
+Dois gráficos de barras (Chart.js):
+Média de precisão e F1 por modelo.
+Média de precisão e F1 por pipeline.
+Tabela com agregados por modelo (precisão média, F1 médio, tempo médio).
+Tabela com agregados por pipeline.
+Essa tela é ideal para discutir, no TCC:
+se o RAG melhora (ou não) a precisão/F1 em relação ao baseline,
+diferenças entre modelos (mistral vs llama3 vs qwen).
+7.3 Exportar resultados para análise estatística
+Em /experiments/ ou no Dashboard Geral, clique em “Exportar CSV”.
+O sistema baixa um arquivo experiment_results.csv contendo, para cada experimento:
+experiment_id,
+document (nome do arquivo),
+llm_model,
+pipeline,
+human_tags,
+generated_tags,
+precision, recall, f1_score, accuracy,
+runtime_seconds,
+num_tokens.
+Importe esse CSV no pandas, R ou Excel para:
+análises adicionais,
+gráficos customizados para o TCC,
+testes estatísticos, se desejar.
+Passo 8 – Uso prático no TCC (sugestão de fluxo metodológico)
+Definir corpus: selecione um conjunto de PDFs representativo do domínio do TCC.
+Definir ground truth: para cada documento, defina cuidadosamente as tags humanas (de preferência revisadas por mais de uma pessoa).
+Selecionar modelos e pipelines:
+Ao menos:
+baseline (pipeline direto),
+RAG (com os mesmos modelos).
+Rodar experimentos em lote para todos os documentos.
+Analisar:
+Por documento: casos em que RAG ajuda ou atrapalha.
+Geral: médias por modelo e por pipeline (Dashboard Geral + CSV).
+Documentar:
+Descrever no TCC:
+como o sistema foi implementado (arquitetura por apps),
+como os experimentos foram configurados (modelo, pipeline, prompt),
+como as métricas foram calculadas (scikit-learn, multi‑label com vetores binários),
+limitações (tokens estimados, execução síncrona etc.).
