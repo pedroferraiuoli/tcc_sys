@@ -8,8 +8,8 @@ Este projeto Django implementa uma aplicação web para execução de experiment
 ## Tecnologias principais
 
 - Django
-- SQLite (padrão) ou PostgreSQL
-- PyMuPDF/pdfplumber para extração de texto (aqui usamos `pdfplumber`)
+- SQLite
+- pdfplumber para extração de texto
 - LlamaIndex para RAG
 - sentence-transformers ou embeddings via Ollama
 - scikit-learn para cálculo de métricas
