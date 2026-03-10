@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Prompts - TCC Tagger{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Prompts</h1>
+  <a href="{% url 'llm:prompt_create' %}" class="btn btn-primary">Novo prompt</a>
+</div>
+
+{% if prompts %}
+<table class="table table-striped table-bordered align-middle">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Padrão</th>
+      <th>Criado em</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in prompts %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td>
+        {% if p.is_default %}
+        <span class="badge bg-primary">Padrão</span>
+        {% else %}
+        -
+        {% endif %}
+      </td>
+      <td>{{ p.created_at|date:"d/m/Y H:i" }}</td>
+      <td>
+        <a href="{% url 'llm:prompt_edit' p.id %}" class="btn btn-sm btn-outline-secondary"
+          >Editar</a
+        >
+        <form
+          method="post"
+          action="{% url 'llm:prompt_delete' p.id %}"
+          style="display: inline-block"
+        >
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="btn btn-sm btn-outline-danger"
+            onclick="return confirm('Tem certeza que deseja excluir este prompt?');"
+          >
+            Excluir
+          </button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Nenhum prompt cadastrado ainda.</p>
+{% endif %}
+{% endblock %}
+

@@ -34,6 +34,35 @@
                 >Dashboard Geral</a
               >
             </li>
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                id="navbarSettings"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Configurações
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="navbarSettings">
+                <li>
+                  <a class="dropdown-item" href="{% url 'llm:model_list' %}"
+                    >Modelos LLM</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'llm:prompt_list' %}"
+                    >Prompts</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'pipelines:list' %}"
+                    >Pipelines</a
+                  >
+                </li>
+              </ul>
+            </li>
           </ul>
         </div>
       </div>

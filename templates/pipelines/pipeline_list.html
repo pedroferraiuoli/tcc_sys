@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Pipelines - TCC Tagger{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Pipelines</h1>
+  <a href="{% url 'pipelines:create' %}" class="btn btn-primary">Novo pipeline</a>
+</div>
+
+{% if pipelines %}
+<table class="table table-striped table-bordered align-middle">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Tipo</th>
+      <th>Chunk size</th>
+      <th>Top-k</th>
+      <th>Criado em</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in pipelines %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td>{{ p.get_type_display }}</td>
+      <td>{{ p.chunk_size }}</td>
+      <td>{{ p.top_k }}</td>
+      <td>{{ p.created_at|date:"d/m/Y H:i" }}</td>
+      <td>
+        <a href="{% url 'pipelines:edit' p.id %}" class="btn btn-sm btn-outline-secondary"
+          >Editar</a
+        >
+        <form
+          method="post"
+          action="{% url 'pipelines:delete' p.id %}"
+          style="display: inline-block"
+        >
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="btn btn-sm btn-outline-danger"
+            onclick="return confirm('Tem certeza que deseja excluir este pipeline?');"
+          >
+            Excluir
+          </button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Nenhum pipeline cadastrado ainda.</p>
+{% endif %}
+{% endblock %}
+

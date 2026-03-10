@@ -11,9 +11,23 @@
       class="btn btn-sm btn-outline-primary"
       >Ver dashboard</a
     >
-    <a href="{% url 'documents:list' %}" class="btn btn-sm btn-secondary ms-2"
-      >Voltar</a
+    <a href="{% url 'documents:list' %}" class="btn btn-sm btn-secondary ms-2">
+      Voltar
+    </a>
+    <form
+      method="post"
+      action="{% url 'documents:delete' document.id %}"
+      style="display: inline-block"
     >
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn btn-sm btn-outline-danger ms-2"
+        onclick="return confirm('Tem certeza que deseja excluir este documento?');"
+      >
+        Excluir
+      </button>
+    </form>
   </div>
 </div>
 

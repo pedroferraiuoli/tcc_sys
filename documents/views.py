@@ -64,3 +64,11 @@ class DocumentDetailView(View):
             },
         )
 
+
+class DocumentDeleteView(View):
+    def post(self, request, pk: int):
+        document = get_object_or_404(Document, pk=pk)
+        document.delete()
+        messages.success(request, "Documento excluído com sucesso.")
+        return redirect("documents:list")
+

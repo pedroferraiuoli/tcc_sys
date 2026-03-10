@@ -11,5 +11,6 @@ urlpatterns = [
     path("documents/", include("documents.urls", namespace="documents")),
     path("experiments/", include("experiments.urls", namespace="experiments")),
     path("evaluation/", include("evaluation.urls", namespace="evaluation")),
+    path("llm/", include("llm.urls", namespace="llm")),
+    path("pipelines/", include("pipelines.urls", namespace="pipelines")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
