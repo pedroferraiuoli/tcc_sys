@@ -98,7 +98,7 @@ def run_rag_pipeline(
     base_url = llm_model.endpoint or "http://localhost:11434"
     Settings.llm = Ollama(
         model=llm_model.name,
-        request_timeout=120.0,
+        request_timeout=150.0,
         base_url=base_url,
     )
 

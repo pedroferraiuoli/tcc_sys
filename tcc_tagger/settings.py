@@ -8,7 +8,7 @@ SECRET_KEY = "change-me-in-production"
 
 DEBUG = True
 
-ALLOWED_HOSTS: list[str] = []
+ALLOWED_HOSTS: list[str] = ["*"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
