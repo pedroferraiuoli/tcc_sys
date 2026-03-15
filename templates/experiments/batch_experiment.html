@@ -3,37 +3,42 @@
 {% block title %}Experimentos em Lote - TCC Tagger{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">Experimentos em lote</h1>
+<div class="form-shell">
+  <h1 class="h3 mb-1">Experimentos em lote</h1>
+  <p class="section-subtitle mb-3">Selecione múltiplos itens para executar combinações automaticamente.</p>
 
-<form method="post" class="card p-3">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
 
-  <div class="mb-3">
-    {{ form.documents.label_tag }}
-    {{ form.documents }}
-  </div>
-
-  <div class="mb-3">
-    {{ form.llm_models.label_tag }}
-    {{ form.llm_models }}
-  </div>
-
-  <div class="mb-3">
-    {{ form.pipelines.label_tag }}
-    {{ form.pipelines }}
-  </div>
-
-  <div class="mb-3">
-    {{ form.prompt.label_tag }}
-    {{ form.prompt }}
-    <div class="form-text">
-      Se vazio, será utilizado o prompt padrão configurado.
+    <div class="mb-3">
+      {{ form.documents.label_tag }}
+      {{ form.documents }}
     </div>
-  </div>
 
-  <button type="submit" class="btn btn-primary">Executar experimentos</button>
-  <a href="{% url 'experiments:list' %}" class="btn btn-secondary ms-2">Cancelar</a>
-</form>
+    <div class="mb-3">
+      {{ form.llm_models.label_tag }}
+      {{ form.llm_models }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.pipelines.label_tag }}
+      {{ form.pipelines }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.prompt.label_tag }}
+      {{ form.prompt }}
+      <div class="form-text">
+        Se vazio, será utilizado o prompt padrão configurado.
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Executar experimentos</button>
+      <a href="{% url 'experiments:list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
 {% endblock %}
 

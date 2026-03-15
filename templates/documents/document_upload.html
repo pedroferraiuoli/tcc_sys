@@ -3,16 +3,21 @@
 {% block title %}Upload de Documento - TCC Tagger{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">Upload de PDF</h1>
+<div class="form-shell">
+  <h1 class="h3 mb-1">Upload de PDF</h1>
+  <p class="section-subtitle mb-3">Envie o arquivo para extrair o texto e iniciar os experimentos.</p>
 
-<form method="post" enctype="multipart/form-data" class="card p-3">
-  {% csrf_token %}
-  <div class="mb-3">
-    {{ form.pdf_file.label_tag }}
-    {{ form.pdf_file }}
-  </div>
-  <button type="submit" class="btn btn-primary">Enviar e extrair texto</button>
-  <a href="{% url 'documents:list' %}" class="btn btn-secondary ms-2">Cancelar</a>
-</form>
+  <form method="post" enctype="multipart/form-data" class="form-card">
+    {% csrf_token %}
+    <div class="mb-3">
+      {{ form.pdf_file.label_tag }}
+      {{ form.pdf_file }}
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Enviar e extrair texto</button>
+      <a href="{% url 'documents:list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
 {% endblock %}
 

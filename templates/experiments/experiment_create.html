@@ -3,39 +3,44 @@
 {% block title %}Novo Experimento - TCC Tagger{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">Novo experimento</h1>
+<div class="form-shell">
+  <h1 class="h3 mb-1">Novo experimento</h1>
+  <p class="section-subtitle mb-3">Selecione documento, modelo, pipeline e prompt para executar.</p>
 
-<form method="post" class="card p-3">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
 
-  <div class="row">
-    <div class="col-md-6 mb-3">
-      {{ form.document.label_tag }}
-      {{ form.document }}
-    </div>
-    <div class="col-md-6 mb-3">
-      {{ form.llm_model.label_tag }}
-      {{ form.llm_model }}
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-md-6 mb-3">
-      {{ form.pipeline.label_tag }}
-      {{ form.pipeline }}
-    </div>
-    <div class="col-md-6 mb-3">
-      {{ form.prompt.label_tag }}
-      {{ form.prompt }}
-      <div class="form-text">
-        Se vazio, será utilizado o prompt padrão configurado.
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        {{ form.document.label_tag }}
+        {{ form.document }}
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.llm_model.label_tag }}
+        {{ form.llm_model }}
       </div>
     </div>
-  </div>
 
-  <button type="submit" class="btn btn-primary">Executar experimento</button>
-  <a href="{% url 'experiments:list' %}" class="btn btn-secondary ms-2">Cancelar</a>
-</form>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        {{ form.pipeline.label_tag }}
+        {{ form.pipeline }}
+      </div>
+      <div class="col-md-6 mb-3">
+        {{ form.prompt.label_tag }}
+        {{ form.prompt }}
+        <div class="form-text">
+          Se vazio, será utilizado o prompt padrão configurado.
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Executar experimento</button>
+      <a href="{% url 'experiments:list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
 {% endblock %}
 
