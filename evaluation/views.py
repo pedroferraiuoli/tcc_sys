@@ -36,9 +36,20 @@ def document_dashboard(request: HttpRequest, document_id: int) -> HttpResponse:
 
 
 def overall_dashboard(request: HttpRequest) -> HttpResponse:
+    selected_batch_code = (request.GET.get("batch_code") or "").strip()
+
     evaluations = EvaluationResult.objects.select_related(
         "experiment__llm_model",
         "experiment__pipeline",
+    )
+    if selected_batch_code:
+        evaluations = evaluations.filter(experiment__batch_code=selected_batch_code)
+
+    available_batch_codes = list(
+        Experiment.objects.exclude(batch_code="")
+        .order_by("-batch_code")
+        .values_list("batch_code", flat=True)
+        .distinct()
     )
 
     rows: List[Dict[str, Any]] = []
@@ -78,6 +89,8 @@ def overall_dashboard(request: HttpRequest) -> HttpResponse:
         "pipeline_stats": pipeline_stats,
         "model_stats_json": json.dumps(model_stats),
         "pipeline_stats_json": json.dumps(pipeline_stats),
+        "selected_batch_code": selected_batch_code,
+        "available_batch_codes": available_batch_codes,
     }
     return render(request, "evaluation/overall_dashboard.html", context)
 

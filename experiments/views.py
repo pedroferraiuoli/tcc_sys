@@ -6,11 +6,12 @@ from django.views import View
 
 from .forms import BatchExperimentForm, ExperimentCreateForm
 from .models import Experiment
-from .services import run_batch_experiments, run_experiment
+from .services import run_batch_experiments_async, run_experiment
 
 
 class ExperimentListView(View):
     def get(self, request):
+        batch_code = (request.GET.get("batch_code") or "").strip()
         experiments = (
             Experiment.objects.select_related(
                 "document",
@@ -21,10 +22,24 @@ class ExperimentListView(View):
             )
             .all()
         )
+        if batch_code:
+            experiments = experiments.filter(batch_code=batch_code)
+
+        available_batch_codes = list(
+            Experiment.objects.exclude(batch_code="")
+            .order_by("-batch_code")
+            .values_list("batch_code", flat=True)
+            .distinct()
+        )
+
         return render(
             request,
             "experiments/experiment_list.html",
-            {"experiments": experiments},
+            {
+                "experiments": experiments,
+                "selected_batch_code": batch_code,
+                "available_batch_codes": available_batch_codes,
+            },
         )
 
 
@@ -78,12 +93,26 @@ class BatchExperimentView(View):
         pipelines = form.cleaned_data["pipelines"]
         prompt = form.cleaned_data.get("prompt") or None
 
-        run_batch_experiments(
+        batch_code, total = run_batch_experiments_async(
             documents=documents,
             llm_models=llm_models,
             pipelines=pipelines,
             prompt=prompt,
         )
-        messages.success(request, "Experimentos em lote executados com sucesso.")
+        messages.success(
+            request,
+            (
+                "Lote disparado em background com sucesso. "
+                f"Código do lote: {batch_code}. Total previsto: {total} experimento(s)."
+            ),
+        )
+        return redirect("experiments:list")
+
+
+class ExperimentDeleteView(View):
+    def post(self, request, experiment_id: int):
+        experiment = get_object_or_404(Experiment, pk=experiment_id)
+        experiment.delete()
+        messages.success(request, f"Experimento {experiment_id} excluído com sucesso.")
         return redirect("experiments:list")
 

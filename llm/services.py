@@ -53,7 +53,6 @@ def _call_ollama(model: LLMModel, prompt: str, timeout: int = 150) -> str:
         # Restringe a quantidade de texto gerado para evitar respostas
         # muito longas que estouram o tempo de requisição.
         "options": {
-            "num_predict": 128,
             "temperature": 0.2,
         },
     }
@@ -61,6 +60,7 @@ def _call_ollama(model: LLMModel, prompt: str, timeout: int = 150) -> str:
     logger.info("Chamando Ollama em %s com modelo %s", url, model.name)
     try:
         response = requests.post(url, json=payload, timeout=timeout)
+        print(response.json())
         response.raise_for_status()
     except requests.Timeout as exc:  # type: ignore[reportAttributeAccessIssue]
         logger.exception("Timeout ao chamar Ollama em %s com modelo %s", url, model.name)

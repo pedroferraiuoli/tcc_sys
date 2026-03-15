@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
+import secrets
+import threading
 from datetime import datetime
 from typing import Iterable, List
 
+from django.db import close_old_connections
 from django.db import transaction
 from django.utils import timezone
 
@@ -73,6 +76,7 @@ def create_experiment(
     llm_model: LLMModel,
     pipeline: PipelineDefinition,
     prompt: PromptTemplate | None = None,
+    batch_code: str = "",
 ) -> Experiment:
     """Cria um experimento usando o prompt padrão, se nenhum for fornecido."""
     if prompt is None:
@@ -87,6 +91,7 @@ def create_experiment(
         llm_model=llm_model,
         pipeline=pipeline,
         prompt=prompt,
+        batch_code=batch_code,
     )
     return experiment
 
@@ -97,6 +102,7 @@ def run_experiment_now(
     llm_model: LLMModel,
     pipeline: PipelineDefinition,
     prompt: PromptTemplate | None = None,
+    batch_code: str = "",
 ) -> Experiment:
     """Helper que cria e já executa um experimento."""
     experiment = create_experiment(
@@ -104,8 +110,89 @@ def run_experiment_now(
         llm_model=llm_model,
         pipeline=pipeline,
         prompt=prompt,
+        batch_code=batch_code,
     )
     return run_experiment(experiment)
+
+
+def generate_batch_code() -> str:
+    """Gera um código curto para agrupar experimentos criados por batch."""
+    return secrets.token_hex(6).upper()
+
+
+def _run_batch_worker(
+    *,
+    document_ids: list[int],
+    llm_model_ids: list[int],
+    pipeline_ids: list[int],
+    prompt_id: int | None,
+    batch_code: str,
+) -> None:
+    # Isola conexões na thread de background para evitar reuse incorreto.
+    close_old_connections()
+    try:
+        documents = Document.objects.filter(id__in=document_ids).order_by("id")
+        llm_models = LLMModel.objects.filter(id__in=llm_model_ids).order_by("id")
+        pipelines = PipelineDefinition.objects.filter(id__in=pipeline_ids).order_by("id")
+        prompt = PromptTemplate.objects.filter(id=prompt_id).first() if prompt_id else None
+
+        logger.info("Iniciando worker do batch %s", batch_code)
+        for document in documents:
+            for llm_model in llm_models:
+                for pipeline in pipelines:
+                    exp = create_experiment(
+                        document=document,
+                        llm_model=llm_model,
+                        pipeline=pipeline,
+                        prompt=prompt,
+                        batch_code=batch_code,
+                    )
+                    try:
+                        run_experiment(exp)
+                    except Exception:  # noqa: BLE001
+                        # O erro já é persistido em run_experiment; seguimos com o lote.
+                        continue
+        logger.info("Batch %s finalizado", batch_code)
+    finally:
+        close_old_connections()
+
+
+def run_batch_experiments_async(
+    *,
+    documents: Iterable[Document],
+    llm_models: Iterable[LLMModel],
+    pipelines: Iterable[PipelineDefinition],
+    prompt: PromptTemplate | None = None,
+) -> tuple[str, int]:
+    """
+    Dispara execução em lote em thread de background e retorna imediatamente.
+
+    Retorna (batch_code, total_esperado_de_experimentos).
+    """
+    document_ids = [doc.id for doc in documents]
+    llm_model_ids = [model.id for model in llm_models]
+    pipeline_ids = [pipeline.id for pipeline in pipelines]
+    prompt_id = prompt.id if prompt else None
+
+    total = len(document_ids) * len(llm_model_ids) * len(pipeline_ids)
+    batch_code = generate_batch_code()
+
+    worker = threading.Thread(
+        target=_run_batch_worker,
+        kwargs={
+            "document_ids": document_ids,
+            "llm_model_ids": llm_model_ids,
+            "pipeline_ids": pipeline_ids,
+            "prompt_id": prompt_id,
+            "batch_code": batch_code,
+        },
+        daemon=True,
+        name=f"batch-experiments-{batch_code}",
+    )
+    worker.start()
+
+    logger.info("Batch %s disparado em background (total=%s)", batch_code, total)
+    return batch_code, total
 
 
 def run_batch_experiments(

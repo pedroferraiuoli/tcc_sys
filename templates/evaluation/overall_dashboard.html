@@ -10,6 +10,28 @@
   >
 </div>
 
+<form method="get" class="card p-3 mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-6">
+      <label for="batch_code" class="form-label">Filtrar por código de lote</label>
+      <select id="batch_code" name="batch_code" class="form-select">
+        <option value="">Todos os lotes</option>
+        {% for code in available_batch_codes %}
+        <option value="{{ code }}" {% if selected_batch_code == code %}selected{% endif %}>{{ code }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-outline-primary">Filtrar</button>
+      <a href="{% url 'evaluation:overall_dashboard' %}" class="btn btn-outline-secondary ms-2">Limpar</a>
+    </div>
+  </div>
+</form>
+
+{% if selected_batch_code %}
+<p class="text-muted">Dashboard filtrado pelo lote <code>{{ selected_batch_code }}</code>.</p>
+{% endif %}
+
 {% if model_stats or pipeline_stats %}
 <div class="row">
   <div class="col-md-6 mb-4">

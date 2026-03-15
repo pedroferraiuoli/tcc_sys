@@ -16,11 +16,34 @@
   </div>
 </div>
 
+<form method="get" class="card p-3 mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-6">
+      <label for="batch_code" class="form-label">Filtrar por código de lote</label>
+      <select id="batch_code" name="batch_code" class="form-select">
+        <option value="">Todos os experimentos</option>
+        {% for code in available_batch_codes %}
+        <option value="{{ code }}" {% if selected_batch_code == code %}selected{% endif %}>{{ code }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-outline-primary">Filtrar</button>
+      <a href="{% url 'experiments:list' %}" class="btn btn-outline-secondary ms-2">Limpar</a>
+    </div>
+  </div>
+</form>
+
+{% if selected_batch_code %}
+<p class="text-muted">Exibindo apenas o lote <code>{{ selected_batch_code }}</code>.</p>
+{% endif %}
+
 {% if experiments %}
 <table class="table table-striped table-bordered align-middle">
   <thead>
     <tr>
       <th>ID</th>
+      <th>Lote</th>
       <th>Documento</th>
       <th>Modelo</th>
       <th>Pipeline</th>
@@ -30,12 +53,14 @@
       <th>F1</th>
       <th>Tempo (s)</th>
       <th>Tokens</th>
+      <th>Ações</th>
     </tr>
   </thead>
   <tbody>
     {% for exp in experiments %}
     <tr>
       <td>{{ exp.id }}</td>
+      <td>{% if exp.batch_code %}<code>{{ exp.batch_code }}</code>{% else %}-{% endif %}</td>
       <td>{{ exp.document.file_name }}</td>
       <td>{{ exp.llm_model.name }}</td>
       <td>{{ exp.pipeline.name }}</td>
@@ -49,6 +74,12 @@
         {% else %}-{% endif %}
       </td>
       <td>{% if exp.result %}{{ exp.result.num_tokens }}{% else %}-{% endif %}</td>
+      <td>
+        <form method="post" action="{% url 'experiments:delete' exp.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+        </form>
+      </td>
     </tr>
     {% endfor %}
   </tbody>

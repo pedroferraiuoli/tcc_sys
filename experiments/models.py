@@ -32,6 +32,14 @@ class Experiment(models.Model):
         related_name="experiments",
         help_text="Prompt utilizado para garantir reprodutibilidade.",
     )
+    batch_code = models.CharField(
+        "código do lote",
+        max_length=32,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Identifica experimentos criados em uma mesma execução em lote.",
+    )
 
     created_at = models.DateTimeField("criado em", auto_now_add=True)
     started_at = models.DateTimeField("iniciado em", null=True, blank=True)

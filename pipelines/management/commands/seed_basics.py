@@ -55,4 +55,3 @@ class Command(BaseCommand):
         #     pipeline.save()
 
         self.stdout.write(self.style.SUCCESS("Prompt padrão e pipeline 'Baseline direta' criados/atualizados com sucesso."))
-
